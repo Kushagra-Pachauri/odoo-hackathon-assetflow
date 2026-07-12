@@ -1,3 +1,5 @@
+import AdminRoute from "../components/organization/AdminRoute";
+import OrganizationSetup from "../pages/organizationSetup/OrganizationSetup";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import AppLayout from "../layouts/AppLayout";
@@ -13,6 +15,15 @@ function AppRoutes() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
+
+          <Route
+              path="/organization-setup"
+              element={
+                <AdminRoute>
+                  <OrganizationSetup />
+                </AdminRoute>
+              }
+            />
         </Route>
 
         <Route path="/login" element={<Login />} />

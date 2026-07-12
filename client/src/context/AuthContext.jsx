@@ -1,20 +1,46 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import api from "@/services/api";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState({
+  id: 1,
+  name: "Admin",
+  role: "admin",
+});
+  const [loading, setLoading] = useState(false);
 
-  const login = () => {};
+  async function fetchCurrentUser() {
+    try {
+      const { data } = await api.get("/auth/me");
+      setUser(data.user);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const logout = () => {};
+  async function login(credentials) {
+    await api.post("/auth/login", credentials);
+    await fetchCurrentUser();
+  }
 
-  const fetchCurrentUser = () => {};
+  async function logout() {
+    await api.post("/auth/logout");
+    setUser(null);
+  }
+
+  //useEffect(() => {
+    //fetchCurrentUser();
+  //}, []);
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        loading,
         login,
         logout,
         fetchCurrentUser,
