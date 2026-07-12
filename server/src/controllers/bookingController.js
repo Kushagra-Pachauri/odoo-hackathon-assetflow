@@ -1,5 +1,5 @@
 import pool from "../db/db.js";
-
+import { io } from "../socket/socket.js";
 /*
 =========================================
 CREATE BOOKING
@@ -27,7 +27,7 @@ export const createBooking = async (req, res) => {
       `
       SELECT *
       FROM assets
-      WHERE id=$1
+      WHERE id = $1
       `,
       [asset_id]
     );
@@ -68,6 +68,19 @@ export const createBooking = async (req, res) => {
       ]
     );
 
+    // ==============================
+    // SOCKET.IO NOTIFICATION
+    // ==============================
+    if (io) {
+      io.to(booked_by).emit("notification", {
+        title: "Booking Confirmed",
+        message: `Your booking for "${asset.rows[0].name}" has been confirmed.`,
+        type: "booking",
+        bookingId: result.rows[0].id,
+        assetId: asset_id,
+      });
+    }
+
     res.status(201).json({
       message: "Booking created successfully",
       booking: result.rows[0],
@@ -77,6 +90,7 @@ export const createBooking = async (req, res) => {
 
     console.error(err);
 
+    // PostgreSQL exclusion constraint violation
     if (err.code === "23P01") {
       return res.status(400).json({
         message: "Asset already booked during this time",

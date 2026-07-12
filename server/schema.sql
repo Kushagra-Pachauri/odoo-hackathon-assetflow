@@ -98,3 +98,13 @@ create table notifications (
   related_entity_type text, related_entity_id uuid,
   read boolean default false, created_at timestamptz default now()
 );
+
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID REFERENCES employees(id),
+    action TEXT NOT NULL,
+    entity_type TEXT,
+    entity_id UUID,
+    details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

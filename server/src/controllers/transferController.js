@@ -1,5 +1,5 @@
 import pool from "../db/db.js";
-
+import { io } from "../socket/socket.js";
 /*
 =========================================
 CREATE TRANSFER REQUEST
@@ -161,9 +161,32 @@ export const approveTransfer = async (req, res) => {
       ]
     );
 
+    // ==============================
+    // SOCKET NOTIFICATION
+    // ==============================
+
+    if (io) {
+
+      io.to(
+        transfer.rows[0].requested_to_employee_id
+      ).emit("notification", {
+
+        title: "Transfer Approved",
+
+        message: "An asset has been transferred to you.",
+
+        type: "transfer",
+
+      });
+
+    }
+
     res.json({
+
       message: "Transfer approved",
+
       transfer: result.rows[0],
+
     });
 
   } catch (err) {
@@ -175,4 +198,5 @@ export const approveTransfer = async (req, res) => {
     });
 
   }
+
 };

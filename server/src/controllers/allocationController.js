@@ -1,4 +1,5 @@
 import pool from "../db/db.js";
+import { io } from "../socket/socket.js";
 
 /*
 =========================================
@@ -82,6 +83,18 @@ export const allocateAsset = async (req, res) => {
       [asset_id]
     );
 
+    // ==============================
+    // SOCKET NOTIFICATION
+    // ==============================
+    if (io) {
+      io.to(employee_id).emit("notification", {
+        title: "Asset Allocated",
+        message: `${asset.rows[0].name} has been allocated to you.`,
+        type: "allocation",
+        assetId: asset_id,
+      });
+    }
+
     res.status(201).json({
       message: "Asset allocated successfully",
       allocation: allocation.rows[0],
@@ -103,6 +116,7 @@ GET ALL ALLOCATIONS
 
 export const getAllocations = async (req, res) => {
   try {
+
     const result = await pool.query(`
       SELECT
         al.*,
@@ -120,10 +134,13 @@ export const getAllocations = async (req, res) => {
     res.json(result.rows);
 
   } catch (err) {
+
     console.error(err);
+
     res.status(500).json({
       message: "Server Error",
     });
+
   }
 };
 
@@ -136,6 +153,7 @@ PUT /api/allocations/:id/return
 
 export const returnAsset = async (req, res) => {
   try {
+
     const { id } = req.params;
 
     const allocation = await pool.query(
@@ -173,14 +191,29 @@ export const returnAsset = async (req, res) => {
       [allocation.rows[0].asset_id]
     );
 
+    // ==============================
+    // SOCKET NOTIFICATION
+    // ==============================
+    if (io) {
+      io.to(allocation.rows[0].employee_id).emit("notification", {
+        title: "Asset Returned",
+        message: "Your asset has been marked as returned.",
+        type: "return",
+        assetId: allocation.rows[0].asset_id,
+      });
+    }
+
     res.json({
       message: "Asset returned successfully",
     });
 
   } catch (err) {
+
     console.error(err);
+
     res.status(500).json({
       message: "Server Error",
     });
+
   }
 };

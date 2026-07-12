@@ -1,4 +1,5 @@
 import pool from "../db/db.js";
+import { io } from "../socket/socket.js";
 
 /*
 =========================================
@@ -146,7 +147,7 @@ export const approveMaintenance = async (req, res) => {
       `
       SELECT *
       FROM maintenance_requests
-      WHERE id=$1
+      WHERE id = $1
       `,
       [id]
     );
@@ -161,10 +162,10 @@ export const approveMaintenance = async (req, res) => {
       `
       UPDATE maintenance_requests
       SET
-        approved_by=$1,
-        technician=$2,
-        status='approved'
-      WHERE id=$3
+        approved_by = $1,
+        technician = $2,
+        status = 'approved'
+      WHERE id = $3
       RETURNING *
       `,
       [
@@ -173,6 +174,18 @@ export const approveMaintenance = async (req, res) => {
         id,
       ]
     );
+
+    // ==============================
+    // SOCKET.IO NOTIFICATION
+    // ==============================
+    if (io) {
+      io.to(request.rows[0].raised_by).emit("notification", {
+        title: "Maintenance Approved",
+        message: "Your maintenance request has been approved.",
+        type: "maintenance",
+        maintenanceId: id,
+      });
+    }
 
     res.json({
       message: "Maintenance approved successfully",
@@ -189,7 +202,6 @@ export const approveMaintenance = async (req, res) => {
 
   }
 };
-
 /*
 =========================================
 RESOLVE MAINTENANCE
@@ -207,7 +219,7 @@ export const resolveMaintenance = async (req, res) => {
       `
       SELECT *
       FROM maintenance_requests
-      WHERE id=$1
+      WHERE id = $1
       `,
       [id]
     );
@@ -222,9 +234,9 @@ export const resolveMaintenance = async (req, res) => {
       `
       UPDATE maintenance_requests
       SET
-        status='resolved',
-        resolved_at=NOW()
-      WHERE id=$1
+        status = 'resolved',
+        resolved_at = NOW()
+      WHERE id = $1
       `,
       [id]
     );
@@ -232,11 +244,24 @@ export const resolveMaintenance = async (req, res) => {
     await pool.query(
       `
       UPDATE assets
-      SET status='available'
-      WHERE id=$1
+      SET status = 'available'
+      WHERE id = $1
       `,
       [request.rows[0].asset_id]
     );
+
+    // ==============================
+    // SOCKET.IO NOTIFICATION
+    // ==============================
+
+    if (io) {
+      io.to(request.rows[0].raised_by).emit("notification", {
+        title: "Maintenance Completed",
+        message: "Your maintenance request has been resolved.",
+        type: "maintenance",
+        maintenanceId: id,
+      });
+    }
 
     res.json({
       message: "Maintenance resolved successfully",
@@ -251,4 +276,5 @@ export const resolveMaintenance = async (req, res) => {
     });
 
   }
+
 };

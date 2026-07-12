@@ -1,13 +1,13 @@
 import dotenv from "dotenv";
 import http from "http";
-import { Server } from "socket.io";
 
 import app from "./app.js";
 import pool from "./db/db.js";
+import { initializeSocket } from "./socket/socket.js";
 
 dotenv.config();
 
-// Test PostgreSQL connection
+// Test PostgreSQL Connection
 try {
   const result = await pool.query("SELECT NOW()");
   console.log("PostgreSQL Connected");
@@ -18,26 +18,13 @@ try {
 
 const PORT = process.env.PORT || 4000;
 
-// Create HTTP server
+// Create HTTP Server
 const server = http.createServer(app);
 
-// Attach Socket.io
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:5173",
-    credentials: true,
-  },
-});
+// Initialize Socket.IO
+initializeSocket(server);
 
-io.on("connection", (socket) => {
-  console.log("User Connected:", socket.id);
-
-  socket.on("disconnect", () => {
-    console.log("User Disconnected:", socket.id);
-  });
-});
-
-// Start server
+// Start Server
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
