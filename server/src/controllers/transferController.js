@@ -1,5 +1,7 @@
 import pool from "../db/db.js";
 import { io } from "../socket/socket.js";
+import { logActivity } from "../utils/auditLogger.js";
+
 /*
 =========================================
 CREATE TRANSFER REQUEST
@@ -57,16 +59,34 @@ export const createTransferRequest = async (req, res) => {
       ]
     );
 
+    // ==============================
+    // AUDIT LOG
+    // ==============================
+
+    await logActivity(
+      requested_by,
+      "Transfer Requested",
+      "transfer",
+      result.rows[0].id,
+      {
+        allocationId: allocation_id,
+        requestedTo: requested_to_employee_id,
+      }
+    );
+
     res.status(201).json({
       message: "Transfer request created",
       transfer: result.rows[0],
     });
 
   } catch (err) {
+
     console.error(err);
+
     res.status(500).json({
       message: "Server Error",
     });
+
   }
 };
 
@@ -77,6 +97,7 @@ GET ALL TRANSFER REQUESTS
 */
 
 export const getTransferRequests = async (req, res) => {
+
   try {
 
     const result = await pool.query(`
@@ -103,6 +124,7 @@ export const getTransferRequests = async (req, res) => {
     });
 
   }
+
 };
 
 /*
@@ -167,26 +189,33 @@ export const approveTransfer = async (req, res) => {
 
     if (io) {
 
-      io.to(
-        transfer.rows[0].requested_to_employee_id
-      ).emit("notification", {
-
+      io.to(transfer.rows[0].requested_to_employee_id).emit("notification", {
         title: "Transfer Approved",
-
         message: "An asset has been transferred to you.",
-
         type: "transfer",
-
+        transferId: id,
       });
 
     }
 
+    // ==============================
+    // AUDIT LOG
+    // ==============================
+
+    await logActivity(
+      approved_by,
+      "Transfer Approved",
+      "transfer",
+      id,
+      {
+        allocationId: transfer.rows[0].allocation_id,
+        newEmployee: transfer.rows[0].requested_to_employee_id,
+      }
+    );
+
     res.json({
-
       message: "Transfer approved",
-
       transfer: result.rows[0],
-
     });
 
   } catch (err) {

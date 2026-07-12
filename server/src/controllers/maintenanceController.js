@@ -1,5 +1,6 @@
 import pool from "../db/db.js";
 import { io } from "../socket/socket.js";
+import { logActivity } from "../utils/auditLogger.js";
 
 /*
 =========================================
@@ -76,17 +77,33 @@ export const createMaintenanceRequest = async (req, res) => {
       [asset_id]
     );
 
+    // ==============================
+    // AUDIT LOG
+    // ==============================
+    await logActivity(
+      raised_by,
+      "Maintenance Requested",
+      "maintenance",
+      result.rows[0].id,
+      {
+        assetId: asset_id,
+        priority: priority || "Medium",
+      }
+    );
+
     res.status(201).json({
       message: "Maintenance request created successfully",
       maintenance: result.rows[0],
     });
 
   } catch (err) {
+
     console.error(err);
 
     res.status(500).json({
       message: "Server Error",
     });
+
   }
 };
 
@@ -98,6 +115,7 @@ GET /api/maintenance
 */
 
 export const getMaintenanceRequests = async (req, res) => {
+
   try {
 
     const result = await pool.query(`
@@ -125,6 +143,7 @@ export const getMaintenanceRequests = async (req, res) => {
     });
 
   }
+
 };
 
 /*
@@ -187,6 +206,20 @@ export const approveMaintenance = async (req, res) => {
       });
     }
 
+    // ==============================
+    // AUDIT LOG
+    // ==============================
+    await logActivity(
+      approved_by,
+      "Maintenance Approved",
+      "maintenance",
+      id,
+      {
+        technician,
+        assetId: request.rows[0].asset_id,
+      }
+    );
+
     res.json({
       message: "Maintenance approved successfully",
       maintenance: result.rows[0],
@@ -201,7 +234,9 @@ export const approveMaintenance = async (req, res) => {
     });
 
   }
+
 };
+
 /*
 =========================================
 RESOLVE MAINTENANCE
@@ -253,7 +288,6 @@ export const resolveMaintenance = async (req, res) => {
     // ==============================
     // SOCKET.IO NOTIFICATION
     // ==============================
-
     if (io) {
       io.to(request.rows[0].raised_by).emit("notification", {
         title: "Maintenance Completed",
@@ -262,6 +296,19 @@ export const resolveMaintenance = async (req, res) => {
         maintenanceId: id,
       });
     }
+
+    // ==============================
+    // AUDIT LOG
+    // ==============================
+    await logActivity(
+      req.user.employeeId,
+      "Maintenance Resolved",
+      "maintenance",
+      id,
+      {
+        assetId: request.rows[0].asset_id,
+      }
+    );
 
     res.json({
       message: "Maintenance resolved successfully",

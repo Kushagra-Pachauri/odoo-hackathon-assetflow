@@ -1,5 +1,6 @@
 import pool from "../db/db.js";
 import { io } from "../socket/socket.js";
+import { logActivity } from "../utils/auditLogger.js";
 
 /*
 =========================================
@@ -9,51 +10,51 @@ POST /api/allocations
 */
 
 export const allocateAsset = async (req, res) => {
-  try {
-    const {
-      asset_id,
-      employee_id,
-      expected_return_date,
-    } = req.body;
+    try {
+        const {
+            asset_id,
+            employee_id,
+            expected_return_date,
+        } = req.body;
 
-    if (!asset_id || !employee_id) {
-      return res.status(400).json({
-        message: "asset_id and employee_id are required",
-      });
-    }
+        if (!asset_id || !employee_id) {
+            return res.status(400).json({
+                message: "asset_id and employee_id are required",
+            });
+        }
 
-    // Check asset exists
-    const asset = await pool.query(
-      "SELECT * FROM assets WHERE id = $1",
-      [asset_id]
-    );
+        // Check asset exists
+        const asset = await pool.query(
+            "SELECT * FROM assets WHERE id = $1",
+            [asset_id]
+        );
 
-    if (asset.rows.length === 0) {
-      return res.status(404).json({
-        message: "Asset not found",
-      });
-    }
+        if (asset.rows.length === 0) {
+            return res.status(404).json({
+                message: "Asset not found",
+            });
+        }
 
-    // Check if asset is already allocated
-    const activeAllocation = await pool.query(
-      `
+        // Check if asset is already allocated
+        const activeAllocation = await pool.query(
+            `
       SELECT id
       FROM allocations
       WHERE asset_id = $1
       AND status = 'active'
       `,
-      [asset_id]
-    );
+            [asset_id]
+        );
 
-    if (activeAllocation.rows.length > 0) {
-      return res.status(400).json({
-        message: "Asset is already allocated",
-      });
-    }
+        if (activeAllocation.rows.length > 0) {
+            return res.status(400).json({
+                message: "Asset is already allocated",
+            });
+        }
 
-    // Create allocation
-    const allocation = await pool.query(
-      `
+        // Create allocation
+        const allocation = await pool.query(
+            `
       INSERT INTO allocations
       (
         asset_id,
@@ -66,46 +67,56 @@ export const allocateAsset = async (req, res) => {
       ($1,$2,NOW(),$3,'active')
       RETURNING *
       `,
-      [
-        asset_id,
-        employee_id,
-        expected_return_date || null,
-      ]
-    );
+            [
+                asset_id,
+                employee_id,
+                expected_return_date || null,
+            ]
+        );
 
-    // Update asset status
-    await pool.query(
-      `
+        // Update asset status
+        await pool.query(
+            `
       UPDATE assets
       SET status='allocated'
       WHERE id=$1
       `,
-      [asset_id]
-    );
+            [asset_id]
+        );
+        await logActivity(
+            req.user.employeeId,
+            "Allocated Asset",
+            "asset",
+            asset_id,
+            {
+                allocatedTo: employee_id,
+                expectedReturnDate: expected_return_date,
+            }
+        );
 
-    // ==============================
-    // SOCKET NOTIFICATION
-    // ==============================
-    if (io) {
-      io.to(employee_id).emit("notification", {
-        title: "Asset Allocated",
-        message: `${asset.rows[0].name} has been allocated to you.`,
-        type: "allocation",
-        assetId: asset_id,
-      });
+        // ==============================
+        // SOCKET NOTIFICATION
+        // ==============================
+        if (io) {
+            io.to(employee_id).emit("notification", {
+                title: "Asset Allocated",
+                message: `${asset.rows[0].name} has been allocated to you.`,
+                type: "allocation",
+                assetId: asset_id,
+            });
+        }
+
+        res.status(201).json({
+            message: "Asset allocated successfully",
+            allocation: allocation.rows[0],
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            message: "Server Error",
+        });
     }
-
-    res.status(201).json({
-      message: "Asset allocated successfully",
-      allocation: allocation.rows[0],
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      message: "Server Error",
-    });
-  }
 };
 
 /*
@@ -115,9 +126,9 @@ GET ALL ALLOCATIONS
 */
 
 export const getAllocations = async (req, res) => {
-  try {
+    try {
 
-    const result = await pool.query(`
+        const result = await pool.query(`
       SELECT
         al.*,
         a.asset_tag,
@@ -131,17 +142,17 @@ export const getAllocations = async (req, res) => {
       ORDER BY al.allocated_at DESC
     `);
 
-    res.json(result.rows);
+        res.json(result.rows);
 
-  } catch (err) {
+    } catch (err) {
 
-    console.error(err);
+        console.error(err);
 
-    res.status(500).json({
-      message: "Server Error",
-    });
+        res.status(500).json({
+            message: "Server Error",
+        });
 
-  }
+    }
 };
 
 /*
@@ -152,68 +163,78 @@ PUT /api/allocations/:id/return
 */
 
 export const returnAsset = async (req, res) => {
-  try {
+    try {
 
-    const { id } = req.params;
+        const { id } = req.params;
 
-    const allocation = await pool.query(
-      `
+        const allocation = await pool.query(
+            `
       SELECT *
       FROM allocations
       WHERE id=$1
       `,
-      [id]
-    );
+            [id]
+        );
 
-    if (allocation.rows.length === 0) {
-      return res.status(404).json({
-        message: "Allocation not found",
-      });
-    }
+        if (allocation.rows.length === 0) {
+            return res.status(404).json({
+                message: "Allocation not found",
+            });
+        }
 
-    await pool.query(
-      `
+        await pool.query(
+            `
       UPDATE allocations
       SET
         actual_return_date = CURRENT_DATE,
         status='returned'
       WHERE id=$1
       `,
-      [id]
-    );
+            [id]
+        );
 
-    await pool.query(
-      `
+        await pool.query(
+            `
       UPDATE assets
       SET status='available'
       WHERE id=$1
       `,
-      [allocation.rows[0].asset_id]
-    );
+            [allocation.rows[0].asset_id]
+        );
 
-    // ==============================
-    // SOCKET NOTIFICATION
-    // ==============================
-    if (io) {
-      io.to(allocation.rows[0].employee_id).emit("notification", {
-        title: "Asset Returned",
-        message: "Your asset has been marked as returned.",
-        type: "return",
-        assetId: allocation.rows[0].asset_id,
-      });
+        // ==============================
+        // SOCKET NOTIFICATION
+        // ==============================
+        if (io) {
+            io.to(allocation.rows[0].employee_id).emit("notification", {
+                title: "Asset Returned",
+                message: "Your asset has been marked as returned.",
+                type: "return",
+                assetId: allocation.rows[0].asset_id,
+            });
+        }
+
+        await logActivity(
+            req.user.employeeId,
+            "Returned Asset",
+            "asset",
+            allocation.rows[0].asset_id,
+            {
+                allocationId: id,
+            }
+        );
+
+        res.json({
+            message: "Asset returned successfully",
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            message: "Server Error",
+        });
+
     }
-
-    res.json({
-      message: "Asset returned successfully",
-    });
-
-  } catch (err) {
-
-    console.error(err);
-
-    res.status(500).json({
-      message: "Server Error",
-    });
-
-  }
 };

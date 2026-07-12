@@ -1,5 +1,7 @@
 import pool from "../db/db.js";
 import { io } from "../socket/socket.js";
+import { logActivity } from "../utils/auditLogger.js";
+
 /*
 =========================================
 CREATE BOOKING
@@ -81,6 +83,22 @@ export const createBooking = async (req, res) => {
       });
     }
 
+    // ==============================
+    // AUDIT LOG
+    // ==============================
+    await logActivity(
+      booked_by,
+      "Created Booking",
+      "booking",
+      result.rows[0].id,
+      {
+        assetId: asset_id,
+        startsAt: starts_at,
+        endsAt: ends_at,
+        purpose,
+      }
+    );
+
     res.status(201).json({
       message: "Booking created successfully",
       booking: result.rows[0],
@@ -90,7 +108,6 @@ export const createBooking = async (req, res) => {
 
     console.error(err);
 
-    // PostgreSQL exclusion constraint violation
     if (err.code === "23P01") {
       return res.status(400).json({
         message: "Asset already booked during this time",
@@ -116,15 +133,15 @@ export const getBookings = async (req, res) => {
 
     const result = await pool.query(`
       SELECT
-      b.*,
-      a.asset_tag,
-      a.name AS asset_name,
-      e.name AS booked_by_name
+        b.*,
+        a.asset_tag,
+        a.name AS asset_name,
+        e.name AS booked_by_name
       FROM bookings b
       JOIN assets a
-      ON a.id=b.asset_id
+        ON a.id = b.asset_id
       JOIN employees e
-      ON e.id=b.booked_by
+        ON e.id = b.booked_by
       ORDER BY b.starts_at
     `);
 
@@ -135,7 +152,7 @@ export const getBookings = async (req, res) => {
     console.error(err);
 
     res.status(500).json({
-      message:"Server Error"
+      message: "Server Error"
     });
 
   }
@@ -166,12 +183,25 @@ export const cancelBooking = async (req, res) => {
 
     if (result.rows.length === 0) {
       return res.status(404).json({
-        message:"Booking not found"
+        message: "Booking not found"
       });
     }
 
+    // ==============================
+    // AUDIT LOG
+    // ==============================
+    await logActivity(
+      req.user.employeeId,
+      "Cancelled Booking",
+      "booking",
+      id,
+      {
+        assetId: result.rows[0].asset_id,
+      }
+    );
+
     res.json({
-      message:"Booking cancelled"
+      message: "Booking cancelled"
     });
 
   } catch (err) {
@@ -179,7 +209,7 @@ export const cancelBooking = async (req, res) => {
     console.error(err);
 
     res.status(500).json({
-      message:"Server Error"
+      message: "Server Error"
     });
 
   }

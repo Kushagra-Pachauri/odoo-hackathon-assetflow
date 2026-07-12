@@ -13,6 +13,7 @@ import maintenanceRoutes from "./routes/maintenanceRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import auditRoutes from "./routes/auditRoutes.js";
 
 
 const app = express();
@@ -38,6 +39,7 @@ app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/audit", auditRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
