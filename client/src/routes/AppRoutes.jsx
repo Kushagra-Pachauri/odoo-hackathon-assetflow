@@ -9,6 +9,7 @@ import Assets from "../pages/Assets";
 import Allocations from "../pages/Allocations";
 import Bookings from "../pages/Bookings";
 import Maintenance from "../pages/Maintenance";
+import Reports from "../pages/Reports";
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 import NotFound from "../pages/NotFound";
@@ -23,6 +24,7 @@ function AppRoutes() {
           <Route path="/allocation" element={<Allocations />} />
           <Route path="/booking" element={<Bookings />} />
           <Route path="/maintenance" element={<Maintenance />} />
+          <Route path="/reports" element={<Reports />} />
 
           <Route
               path="/organization-setup"
