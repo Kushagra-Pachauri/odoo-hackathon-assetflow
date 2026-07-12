@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout";
 
 import Dashboard from "../pages/Dashboard";
+import Assets from "../pages/Assets";
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 import NotFound from "../pages/NotFound";
@@ -15,6 +16,7 @@ function AppRoutes() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/assets" element={<Assets />} />
 
           <Route
               path="/organization-setup"
