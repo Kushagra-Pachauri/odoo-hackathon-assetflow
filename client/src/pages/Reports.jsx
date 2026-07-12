@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  PieChart,
-  Pie,
-  Cell,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   XAxis,
@@ -113,24 +112,40 @@ function Reports() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      outerRadius={80}
-                      fill="#1E7F91"
+                  <AreaChart data={statusData} margin={{ top: 15, right: 15, left: -25, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorStatus" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#1E7F91" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#1E7F91" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D8D9D2" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontFamily: "IBM Plex Sans", fontSize: 10, fill: "#14243B" }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontFamily: "IBM Plex Mono", fontSize: 10, fill: "#14243B" }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "6px",
+                        border: "1px solid #D8D9D2",
+                        fontFamily: "IBM Plex Sans",
+                        fontSize: "12px",
+                      }}
+                    />
+                    <Area
+                      type="monotone"
                       dataKey="value"
-                    >
-                      {statusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={BRAND_COLORS[index % BRAND_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ fontFamily: "IBM Plex Sans", fontSize: "12px" }} />
-                    <Legend wrapperStyle={{ fontFamily: "IBM Plex Sans", fontSize: "11px" }} />
-                  </PieChart>
+                      stroke="#1E7F91"
+                      fillOpacity={1}
+                      fill="url(#colorStatus)"
+                      strokeWidth={2}
+                      name="Assets"
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               )}
             </div>
@@ -149,23 +164,40 @@ function Reports() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={priorityData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={4}
+                  <AreaChart data={priorityData} margin={{ top: 15, right: 15, left: -25, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorPriority" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#B8720E" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#B8720E" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D8D9D2" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontFamily: "IBM Plex Sans", fontSize: 10, fill: "#14243B" }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontFamily: "IBM Plex Mono", fontSize: 10, fill: "#14243B" }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "6px",
+                        border: "1px solid #D8D9D2",
+                        fontFamily: "IBM Plex Sans",
+                        fontSize: "12px",
+                      }}
+                    />
+                    <Area
+                      type="monotone"
                       dataKey="value"
-                    >
-                      {priorityData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ fontFamily: "IBM Plex Sans", fontSize: "12px" }} />
-                    <Legend wrapperStyle={{ fontFamily: "IBM Plex Sans", fontSize: "11px" }} />
-                  </PieChart>
+                      stroke="#B8720E"
+                      fillOpacity={1}
+                      fill="url(#colorPriority)"
+                      strokeWidth={2}
+                      name="Requests"
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               )}
             </div>

@@ -18,7 +18,6 @@ const menuItems = [
   { name: "Resource Booking", path: "/booking", icon: CalendarClock },
   { name: "Maintenance", path: "/maintenance", icon: Wrench },
   { name: "Reports", path: "/reports", icon: BarChart3 },
-  { name: "Notifications", path: "/notifications", icon: Bell },
 ];
 
 function Sidebar() {
