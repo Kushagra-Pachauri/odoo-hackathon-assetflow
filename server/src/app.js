@@ -11,6 +11,7 @@ import allocationRoutes from "./routes/allocationRoutes.js";
 import transferRoutes from "./routes/transferRoutes.js";
 import maintenanceRoutes from "./routes/maintenanceRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 
 const app = express();
@@ -34,6 +35,7 @@ app.use("/api/allocations", allocationRoutes);
 app.use("/api/transfers", transferRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
