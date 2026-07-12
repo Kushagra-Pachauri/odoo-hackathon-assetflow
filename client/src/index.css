@@ -1,3 +1,44 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+
+  /* Override shadcn default border-radius globally */
+  * {
+    --radius: 6px;
+  }
+}
+
+@layer utilities {
+  /* KPI count-up flash animation */
+  @keyframes kpi-flash {
+    0%   { background-color: rgba(30, 127, 145, 0.10); }
+    100% { background-color: #fff; }
+  }
+  .animate-kpi-flash {
+    animation: kpi-flash 400ms ease-out forwards;
+  }
+
+  /* Booking block slide-in */
+  @keyframes slide-fade-in {
+    0%   { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-in {
+    animation: slide-fade-in 250ms ease-out forwards;
+  }
+
+  /* Dot-grid background for auth pages */
+  .bg-dot-grid {
+    background-image: radial-gradient(circle, #D8D9D2 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}

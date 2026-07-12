@@ -17,21 +17,12 @@ import {
 import { getAssets } from "@/services/assetService";
 import { getMaintenanceRequests } from "@/services/maintenanceService";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-
-// Colors for charts
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
+const BRAND_COLORS = ["#1E7F91", "#3F7D45", "#B8720E", "#A8321F", "#8D97A6"];
 const PRIORITY_COLORS = {
-  Low: "#94a3b8",      // slate-400
-  Medium: "#3b82f6",   // blue-500
-  High: "#f97316",     // orange-500
-  Critical: "#ef4444", // red-500
+  Low: "#8D97A6",
+  Medium: "#1E7F91",
+  High: "#B8720E",
+  Critical: "#A8321F",
 };
 
 function Reports() {
@@ -43,13 +34,10 @@ function Reports() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Note: As there are no dedicated /api/reports endpoints yet, 
-        // we aggregate data locally from existing models as a temporary workaround.
         const [assetData, maintData] = await Promise.all([
           getAssets(),
           getMaintenanceRequests(),
         ]);
-        
         setAssets(assetData);
         setMaintenance(maintData);
       } catch (error) {
@@ -63,69 +51,66 @@ function Reports() {
     fetchData();
   }, []);
 
-  // 1. Asset Status Distribution (Pie Chart)
+  // 1. Asset Status Distribution
   const statusCounts = assets.reduce((acc, asset) => {
     acc[asset.status] = (acc[asset.status] || 0) + 1;
     return acc;
   }, {});
-  
-  const statusData = Object.keys(statusCounts).map(status => ({
+
+  const statusData = Object.keys(statusCounts).map((status) => ({
     name: status.replace("_", " ").toUpperCase(),
     value: statusCounts[status],
   }));
 
-  // 2. Assets by Category (Bar Chart)
+  // 2. Assets by Category
   const categoryCounts = assets.reduce((acc, asset) => {
     acc[asset.category_name] = (acc[asset.category_name] || 0) + 1;
     return acc;
   }, {});
-  
-  const categoryData = Object.keys(categoryCounts).map(category => ({
-    name: category || "Uncategorized",
-    count: categoryCounts[category],
-  })).sort((a, b) => b.count - a.count);
 
-  // 3. Maintenance Priority Distribution (Pie Chart)
+  const categoryData = Object.keys(categoryCounts)
+    .map((category) => ({
+      name: category || "Uncategorized",
+      count: categoryCounts[category],
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // 3. Maintenance Priority Distribution
   const priorityCounts = maintenance.reduce((acc, req) => {
     acc[req.priority] = (acc[req.priority] || 0) + 1;
     return acc;
   }, {});
 
-  const priorityData = Object.keys(priorityCounts).map(priority => ({
+  const priorityData = Object.keys(priorityCounts).map((priority) => ({
     name: priority,
     value: priorityCounts[priority],
-    color: PRIORITY_COLORS[priority] || "#ccc",
+    color: PRIORITY_COLORS[priority] || "#8D97A6",
   }));
 
   return (
     <div className="space-y-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Reports & Analytics</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl font-semibold text-ink">Reports & Analytics</h1>
+        <p className="font-sans text-sm text-ink/50 mt-0.5">
           Visual insights into asset utilization and maintenance health.
-          <br/>
-          <span className="text-xs italic text-blue-600">
-            * Currently aggregating locally via existing APIs. Dedicated report APIs are pending.
-          </span>
         </p>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 text-muted-foreground">
-          Aggregating data...
-        </div>
+        <div className="text-center py-10 text-ink/40 font-sans">Aggregating report data…</div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
           {/* Chart 1: Asset Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Asset Status Distribution</CardTitle>
-              <CardDescription>Current state of all tracked hardware</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[300px]">
+          <div className="bg-white border border-line rounded-md overflow-hidden">
+            <div className="px-5 py-3 border-b border-line">
+              <h2 className="font-display font-medium text-sm text-ink">Asset Status Distribution</h2>
+              <p className="font-sans text-xs text-ink/50 mt-0.5">Current state of all tracked hardware</p>
+            </div>
+            <div className="p-5 h-[300px]">
               {statusData.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-muted-foreground">No assets found</div>
+                <div className="flex h-full items-center justify-center text-ink/30 font-sans text-sm">
+                  No assets found
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -136,30 +121,32 @@ function Reports() {
                       labelLine={false}
                       label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                       outerRadius={80}
-                      fill="#8884d8"
+                      fill="#1E7F91"
                       dataKey="value"
                     >
                       {statusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={BRAND_COLORS[index % BRAND_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip />
-                    <Legend />
+                    <Tooltip contentStyle={{ fontFamily: "IBM Plex Sans", fontSize: "12px" }} />
+                    <Legend wrapperStyle={{ fontFamily: "IBM Plex Sans", fontSize: "11px" }} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Chart 2: Maintenance Priorities */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Maintenance Priorities</CardTitle>
-              <CardDescription>Volume of requests by urgency</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[300px]">
+          <div className="bg-white border border-line rounded-md overflow-hidden">
+            <div className="px-5 py-3 border-b border-line">
+              <h2 className="font-display font-medium text-sm text-ink">Maintenance Priorities</h2>
+              <p className="font-sans text-xs text-ink/50 mt-0.5">Volume of requests by urgency</p>
+            </div>
+            <div className="p-5 h-[300px]">
               {priorityData.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-muted-foreground">No maintenance data</div>
+                <div className="flex h-full items-center justify-center text-ink/30 font-sans text-sm">
+                  No maintenance data
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -169,50 +156,67 @@ function Reports() {
                       cy="50%"
                       innerRadius={60}
                       outerRadius={80}
-                      paddingAngle={5}
+                      paddingAngle={4}
                       dataKey="value"
                     >
                       {priorityData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
-                    <Legend />
+                    <Tooltip contentStyle={{ fontFamily: "IBM Plex Sans", fontSize: "12px" }} />
+                    <Legend wrapperStyle={{ fontFamily: "IBM Plex Sans", fontSize: "11px" }} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Chart 3: Assets by Category */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Inventory by Category</CardTitle>
-              <CardDescription>Total count of assets across all active categories</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[350px]">
+          <div className="bg-white border border-line rounded-md overflow-hidden lg:col-span-2">
+            <div className="px-5 py-3 border-b border-line">
+              <h2 className="font-display font-medium text-sm text-ink">Inventory by Category</h2>
+              <p className="font-sans text-xs text-ink/50 mt-0.5">Total count of assets across all active categories</p>
+            </div>
+            <div className="p-5 h-[350px]">
               {categoryData.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-muted-foreground">No category data</div>
+                <div className="flex h-full items-center justify-center text-ink/30 font-sans text-sm">
+                  No category data
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={categoryData}
                     margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip 
-                      cursor={{fill: 'transparent'}}
-                      contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D8D9D2" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontFamily: "IBM Plex Sans", fontSize: 11, fill: "#14243B" }}
                     />
-                    <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Total Assets" />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontFamily: "IBM Plex Mono", fontSize: 11, fill: "#14243B" }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "rgba(30,127,145,0.04)" }}
+                      contentStyle={{
+                        borderRadius: "6px",
+                        border: "1px solid #D8D9D2",
+                        fontFamily: "IBM Plex Sans",
+                        fontSize: "12px",
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#1E7F91"
+                      radius={[4, 4, 0, 0]}
+                      name="Total Assets"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               )}
-            </CardContent>
-          </Card>
-
+            </div>
+          </div>
         </div>
       )}
     </div>

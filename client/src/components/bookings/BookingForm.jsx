@@ -6,48 +6,36 @@ import { toast } from "sonner";
 
 import { createBooking } from "@/services/bookingService";
 
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+const bookingSchema = z
+  .object({
+    asset_id: z.string().min(1, "Asset is required"),
+    date: z.string().min(1, "Date is required"),
+    start_time: z.string().min(1, "Start time is required"),
+    end_time: z.string().min(1, "End time is required"),
+    purpose: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.start_time && data.end_time) {
+        const start = new Date(`1970-01-01T${data.start_time}`);
+        const end = new Date(`1970-01-01T${data.end_time}`);
+        return start < end;
+      }
+      return true;
+    },
+    { message: "End time must be after start time", path: ["end_time"] }
+  );
 
-const bookingSchema = z.object({
-  asset_id: z.string().min(1, "Asset is required"),
-  date: z.string().min(1, "Date is required"),
-  start_time: z.string().min(1, "Start time is required"),
-  end_time: z.string().min(1, "End time is required"),
-  purpose: z.string().optional(),
-}).refine(data => {
-  if (data.start_time && data.end_time) {
-    const start = new Date(`1970-01-01T${data.start_time}`);
-    const end = new Date(`1970-01-01T${data.end_time}`);
-    return start < end;
-  }
-  return true;
-}, {
-  message: "End time must be after start time",
-  path: ["end_time"],
-});
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7:00 – 19:00
 
 function BookingForm({ assets = [], bookings = [], onSuccess }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [conflictError, setConflictError] = useState(null);
 
-  const bookableAssets = useMemo(() => {
-    return assets.filter((asset) => asset.is_bookable === true);
-  }, [assets]);
+  const bookableAssets = useMemo(
+    () => assets.filter((asset) => asset.is_bookable === true),
+    [assets]
+  );
 
   const {
     control,
@@ -69,15 +57,15 @@ function BookingForm({ assets = [], bookings = [], onSuccess }) {
   const selectedAssetId = watch("asset_id");
   const selectedDate = watch("date");
 
-  // Filter bookings for the day view
   const dayBookings = useMemo(() => {
     if (!selectedAssetId || !selectedDate) return [];
-    
-    return bookings.filter((b) => {
-      if (b.status === "cancelled" || b.asset_id !== selectedAssetId) return false;
-      const bDate = new Date(b.starts_at).toISOString().split("T")[0];
-      return bDate === selectedDate;
-    }).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+    return bookings
+      .filter((b) => {
+        if (b.status === "cancelled" || b.asset_id !== selectedAssetId) return false;
+        const bDate = new Date(b.starts_at).toISOString().split("T")[0];
+        return bDate === selectedDate;
+      })
+      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
   }, [bookings, selectedAssetId, selectedDate]);
 
   async function onSubmit(values) {
@@ -96,175 +84,228 @@ function BookingForm({ assets = [], bookings = [], onSuccess }) {
 
     try {
       await createBooking(payload);
-      toast.success("Booking confirmed successfully.");
+      toast.success("Resource booked.");
       reset();
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error("Booking Error:", error);
       const status = error.response?.status;
-      
+
       if (status === 400 || status === 409) {
-        // Try to derive the overlap locally
         const reqStart = new Date(starts_at);
         const reqEnd = new Date(ends_at);
-        
-        const overlap = dayBookings.find(b => {
+
+        const overlap = dayBookings.find((b) => {
           const bStart = new Date(b.starts_at);
           const bEnd = new Date(b.ends_at);
-          return (reqStart < bEnd && reqEnd > bStart);
+          return reqStart < bEnd && reqEnd > bStart;
         });
 
         if (overlap) {
-          const overlapStart = new Date(overlap.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const overlapEnd = new Date(overlap.ends_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const overlapStart = new Date(overlap.starts_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          const overlapEnd = new Date(overlap.ends_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
           setConflictError(`This overlaps an existing booking from ${overlapStart} to ${overlapEnd}`);
         } else {
           setConflictError("This overlaps an existing booking.");
         }
-        
         toast.error("Booking conflict detected.");
       } else {
-        toast.error("Failed to create booking.");
+        toast.error("Failed to book resource.");
       }
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  /* Helper: turn a time into a fractional hour for the ruler */
+  function timeToFraction(isoString) {
+    const d = new Date(isoString);
+    return d.getUTCHours() + d.getUTCMinutes() / 60;
+  }
+
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Book a Resource</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="bg-white border border-line rounded-md overflow-hidden">
+      <div className="px-5 py-3 border-b border-line">
+        <h2 className="font-display font-medium text-sm text-ink">Book a resource</h2>
+      </div>
+      <div className="p-5">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="mb-2 block text-sm font-medium">Resource</label>
+              <label className="mb-1.5 block text-xs font-sans font-medium text-ink/60 uppercase tracking-wide">Resource</label>
               <Controller
                 name="asset_id"
                 control={control}
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Bookable Asset" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {bookableAssets.length === 0 && (
-                        <SelectItem value="none" disabled>
-                          No bookable assets found
-                        </SelectItem>
-                      )}
-                      {bookableAssets.map((asset) => (
-                        <SelectItem key={asset.id} value={asset.id}>
-                          {asset.asset_tag} - {asset.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    className="w-full px-3 py-2 text-sm font-sans border border-line rounded-md bg-white text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  >
+                    <option value="">Select bookable asset</option>
+                    {bookableAssets.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.asset_tag} — {asset.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
               />
-              {errors.asset_id && (
-                <p className="mt-1 text-sm text-red-500">{errors.asset_id.message}</p>
-              )}
+              {errors.asset_id && <p className="mt-1 text-xs text-status-alert">{errors.asset_id.message}</p>}
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">Date</label>
+              <label className="mb-1.5 block text-xs font-sans font-medium text-ink/60 uppercase tracking-wide">Date</label>
               <Controller
                 name="date"
                 control={control}
                 render={({ field }) => (
-                  <Input type="date" {...field} />
+                  <input
+                    type="date"
+                    {...field}
+                    className="w-full px-3 py-2 text-sm font-mono border border-line rounded-md bg-white text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  />
                 )}
               />
-              {errors.date && (
-                <p className="mt-1 text-sm text-red-500">{errors.date.message}</p>
-              )}
+              {errors.date && <p className="mt-1 text-xs text-status-alert">{errors.date.message}</p>}
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">Start Time</label>
+              <label className="mb-1.5 block text-xs font-sans font-medium text-ink/60 uppercase tracking-wide">Start time</label>
               <Controller
                 name="start_time"
                 control={control}
                 render={({ field }) => (
-                  <Input type="time" {...field} />
+                  <input
+                    type="time"
+                    {...field}
+                    className="w-full px-3 py-2 text-sm font-mono border border-line rounded-md bg-white text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  />
                 )}
               />
-              {errors.start_time && (
-                <p className="mt-1 text-sm text-red-500">{errors.start_time.message}</p>
-              )}
+              {errors.start_time && <p className="mt-1 text-xs text-status-alert">{errors.start_time.message}</p>}
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">End Time</label>
+              <label className="mb-1.5 block text-xs font-sans font-medium text-ink/60 uppercase tracking-wide">End time</label>
               <Controller
                 name="end_time"
                 control={control}
                 render={({ field }) => (
-                  <Input type="time" {...field} />
+                  <input
+                    type="time"
+                    {...field}
+                    className="w-full px-3 py-2 text-sm font-mono border border-line rounded-md bg-white text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  />
                 )}
               />
-              {errors.end_time && (
-                <p className="mt-1 text-sm text-red-500">{errors.end_time.message}</p>
-              )}
+              {errors.end_time && <p className="mt-1 text-xs text-status-alert">{errors.end_time.message}</p>}
             </div>
 
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium">Purpose (Optional)</label>
+              <label className="mb-1.5 block text-xs font-sans font-medium text-ink/60 uppercase tracking-wide">Purpose (optional)</label>
               <Controller
                 name="purpose"
                 control={control}
                 render={({ field }) => (
-                  <Input placeholder="E.g. Team Meeting" {...field} />
+                  <input
+                    placeholder="E.g. Team meeting"
+                    {...field}
+                    className="w-full px-3 py-2 text-sm font-sans border border-line rounded-md bg-white text-ink placeholder:text-ink/30 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  />
                 )}
               />
             </div>
           </div>
 
-          {/* Day View Integration */}
+          {/* Time Ruler */}
           {selectedAssetId && selectedDate && (
-            <div className="mt-4 p-4 border rounded-md bg-slate-50">
-              <h4 className="font-medium mb-3 text-sm text-slate-700">
-                Schedule for {selectedDate}
+            <div className="mt-4 border border-line rounded-md bg-paper p-4">
+              <h4 className="font-sans text-xs font-medium text-ink/60 uppercase tracking-wide mb-3">
+                Schedule for <span className="font-mono">{selectedDate}</span>
               </h4>
-              {dayBookings.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">
-                  No bookings for this date. The resource is fully available!
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {dayBookings.map((b) => {
-                    const start = new Date(b.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const end = new Date(b.ends_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    return (
-                      <div key={b.id} className="flex justify-between items-center text-sm p-2 bg-white rounded border">
-                        <span className="font-medium text-blue-700">{start} - {end}</span>
-                        <span className="text-muted-foreground truncate ml-4 max-w-[200px]">{b.purpose || "Reserved"}</span>
-                      </div>
-                    );
-                  })}
+
+              {/* Hour marks ruler */}
+              <div className="relative">
+                <div className="flex">
+                  {HOURS.map((h) => (
+                    <div key={h} className="flex-1 text-center">
+                      <span className="font-mono text-[10px] text-ink/30">
+                        {String(h).padStart(2, "0")}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              )}
+                {/* Ruler line */}
+                <div className="relative h-[1px] bg-line mt-1 mb-2">
+                  {HOURS.map((h) => (
+                    <div
+                      key={h}
+                      className="absolute top-[-2px] w-[1px] h-[5px] bg-line"
+                      style={{ left: `${((h - 7) / (HOURS.length - 1)) * 100}%` }}
+                    />
+                  ))}
+                </div>
+
+                {/* Booking blocks */}
+                <div className="relative h-10">
+                  {dayBookings.length === 0 ? (
+                    <p className="text-xs text-ink/30 font-sans absolute inset-0 flex items-center justify-center">
+                      No bookings for this date — the resource is fully available.
+                    </p>
+                  ) : (
+                    dayBookings.map((b) => {
+                      const startHour = timeToFraction(b.starts_at);
+                      const endHour = timeToFraction(b.ends_at);
+                      const rangeStart = HOURS[0];
+                      const rangeEnd = HOURS[HOURS.length - 1];
+                      const leftPct = ((Math.max(startHour, rangeStart) - rangeStart) / (rangeEnd - rangeStart)) * 100;
+                      const widthPct = ((Math.min(endHour, rangeEnd) - Math.max(startHour, rangeStart)) / (rangeEnd - rangeStart)) * 100;
+
+                      const startStr = new Date(b.starts_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                      const endStr = new Date(b.ends_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                      const isWide = widthPct > 12;
+
+                      return (
+                        <div
+                          key={b.id}
+                          className="absolute top-0 h-full bg-accent/15 border border-accent rounded-sm flex items-center px-1.5 overflow-hidden group animate-slide-in"
+                          style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                          title={`${startStr}–${endStr} • ${b.purpose || "Reserved"} • ${b.booked_by_name || ""}`}
+                        >
+                          {isWide && (
+                            <span className="font-sans text-[10px] text-accent truncate">
+                              {b.purpose || "Reserved"} — {b.booked_by_name || ""}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Conflict Error Message */}
+          {/* Conflict */}
           {conflictError && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm font-medium">
+            <div className="p-3 bg-paper border border-status-alert/30 text-status-alert rounded-md text-xs font-sans font-medium">
               {conflictError}
             </div>
           )}
 
-          <div className="flex justify-end pt-2">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Processing..." : "Confirm Booking"}
-            </Button>
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-[13px] font-sans bg-ink text-paper rounded-md transition-colors duration-150 hover:bg-ink/90 disabled:opacity-50"
+            >
+              {isSubmitting ? "Booking…" : "Book resource"}
+            </button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

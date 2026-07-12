@@ -1,9 +1,5 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-
 import { categorySchema } from "./categorySchema";
 
 function CategoryForm({
@@ -22,31 +18,28 @@ function CategoryForm({
   });
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-4"
-    >
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label className="mb-2 block text-sm font-medium">
+        <label className="mb-1.5 block text-xs font-sans font-medium text-ink/60 uppercase tracking-wide">
           Category Name
         </label>
-
-        <Input
-          placeholder="Laptop"
+        <input
+          placeholder="e.g. Laptops"
           {...register("name")}
+          className="w-full px-3 py-2 text-sm font-sans border border-line rounded-md bg-white text-ink placeholder:text-ink/30 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
-
         {errors.name && (
-          <p className="mt-1 text-sm text-red-500">
-            {errors.name.message}
-          </p>
+          <p className="mt-1 text-xs text-status-alert">{errors.name.message}</p>
         )}
       </div>
 
-      <div className="flex justify-end">
-        <Button type="submit">
-          Save
-        </Button>
+      <div className="flex justify-end pt-1">
+        <button
+          type="submit"
+          className="px-4 py-2 text-[13px] font-sans bg-ink text-paper rounded-md transition-colors duration-150 hover:bg-ink/90"
+        >
+          Save Category
+        </button>
       </div>
     </form>
   );

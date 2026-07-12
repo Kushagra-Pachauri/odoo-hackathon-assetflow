@@ -7,14 +7,6 @@ import { getEmployees } from "@/services/employeeService";
 import DepartmentDialog from "@/components/organization/departments/DepartmentDialog";
 import CategoryDialog from "@/components/organization/categories/CategoryDialog";
 
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-
-import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 import DepartmentsTab from "./DepartmentsTab";
@@ -92,57 +84,68 @@ function OrganizationSetup() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Organization Setup</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-semibold text-ink">Organization Setup</h1>
+          <p className="font-sans text-sm text-ink/50 mt-0.5">
             Manage departments, asset categories and employees.
           </p>
         </div>
 
         {activeTab !== "employees" && (
-          <Button onClick={handleAddClick}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add
-          </Button>
+          <button
+            onClick={handleAddClick}
+            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-sans bg-ink text-paper rounded-md transition-colors duration-150 hover:bg-ink/90"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add
+          </button>
         )}
       </div>
 
-      <Tabs
-        defaultValue="departments"
-        className="w-full"
-        onValueChange={setActiveTab}
-      >
-        <TabsList className="mb-6">
-          <TabsTrigger value="departments">Departments</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="employees">Employees</TabsTrigger>
-        </TabsList>
+      {/* Tabs Selector */}
+      <div className="border-b border-line flex gap-6">
+        {["departments", "categories", "employees"].map((tab) => {
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-2.5 text-sm font-sans font-medium transition-colors duration-150 relative capitalize
+                ${isActive ? "text-ink font-semibold" : "text-ink/50 hover:text-ink/80"}
+              `}
+            >
+              {tab}
+              {isActive && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent" />
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-        <div className="mt-6">
-          <TabsContent value="departments">
-            <DepartmentsTab
-              departments={departments}
-              loading={loadingDepartments}
-              refreshDepartments={fetchDepartments}
-            />
-          </TabsContent>
+      <div className="mt-6">
+        {activeTab === "departments" && (
+          <DepartmentsTab
+            departments={departments}
+            loading={loadingDepartments}
+            refreshDepartments={fetchDepartments}
+          />
+        )}
 
-          <TabsContent value="categories">
-            <CategoriesTab
-              categories={categories}
-              loading={loadingCategories}
-              refreshCategories={fetchCategories}
-            />
-          </TabsContent>
+        {activeTab === "categories" && (
+          <CategoriesTab
+            categories={categories}
+            loading={loadingCategories}
+            refreshCategories={fetchCategories}
+          />
+        )}
 
-          <TabsContent value="employees">
-            <EmployeesTab
-              employees={employees}
-              loading={loadingEmployees}
-              refreshEmployees={fetchEmployees}
-            />
-          </TabsContent>
-        </div>
-      </Tabs>
+        {activeTab === "employees" && (
+          <EmployeesTab
+            employees={employees}
+            loading={loadingEmployees}
+            refreshEmployees={fetchEmployees}
+          />
+        )}
+      </div>
 
       <DepartmentDialog
         open={departmentDialogOpen}

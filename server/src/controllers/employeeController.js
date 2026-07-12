@@ -169,3 +169,63 @@ export const deleteEmployee = async (req, res) => {
     });
   }
 };
+
+/*
+=========================================
+PROMOTE EMPLOYEE (CYCLE ROLE)
+PATCH /api/employees/:id/role
+=========================================
+*/
+
+const ROLE_ORDER = [
+  "employee",
+  "department_head",
+  "asset_manager",
+  "admin",
+];
+
+export const promoteEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const current = await pool.query(
+      "SELECT id, role FROM employees WHERE id=$1",
+      [id]
+    );
+
+    if (current.rows.length === 0) {
+      return res.status(404).json({
+        message: "Employee not found",
+      });
+    }
+
+    const currentRole = current.rows[0].role;
+    const currentIndex = ROLE_ORDER.indexOf(currentRole);
+    const nextRole =
+      ROLE_ORDER[
+        Math.min(currentIndex + 1, ROLE_ORDER.length - 1)
+      ];
+
+    const result = await pool.query(
+      `
+      UPDATE employees
+      SET role=$1
+      WHERE id=$2
+      RETURNING id, name, email, role, department_id, status
+      `,
+      [nextRole, id]
+    );
+
+    res.json({
+      message: "Employee promoted successfully",
+      employee: result.rows[0],
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Server Error",
+    });
+  }
+};

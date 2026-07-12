@@ -5,6 +5,7 @@ import {
   getEmployeeById,
   updateEmployee,
   deleteEmployee,
+  promoteEmployee,
 } from "../controllers/employeeController.js";
 
 import {
@@ -63,6 +64,19 @@ router.delete(
   requireAuth,
   requireRole("admin"),
   deleteEmployee
+);
+
+/*
+=========================================
+PROMOTE EMPLOYEE
+Admin Only
+=========================================
+*/
+router.patch(
+  "/:id/role",
+  requireAuth,
+  requireRole("admin"),
+  promoteEmployee
 );
 
 export default router;

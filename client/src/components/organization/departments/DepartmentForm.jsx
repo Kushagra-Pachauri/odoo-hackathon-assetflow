@@ -1,176 +1,152 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
 import { Controller } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
 
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-
+import { getEmployees } from "@/services/employeeService";
+import { getDepartments } from "@/services/departmentService";
 import { departmentSchema } from "./departmentSchema";
-
-const mockEmployees = [
-  { id: "1", name: "John Doe" },
-  { id: "2", name: "Jane Smith" },
-  { id: "3", name: "Michael Johnson" },
-];
-
-const mockDepartments = [
-  { id: "eng", name: "Engineering" },
-  { id: "hr", name: "Human Resources" },
-  { id: "fin", name: "Finance" },
-];
 
 function DepartmentForm({
   onSubmit,
   initialValues = {
     name: "",
-    head: "",
-    parent: "",
+    head_employee_id: "",
+    parent_department_id: "",
     status: "active",
   },
 }) {
-const {
-  register,
-  control,
-  handleSubmit,
-  formState: { errors },
-} = useForm({
-  resolver: zodResolver(departmentSchema),
-  defaultValues: initialValues,
-}); 
+  const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
+
+  // Map incoming database-aligned names to schema-aligned names
+  const defaultHead = initialValues.head_employee_id || initialValues.head || "";
+  const defaultParent = initialValues.parent_department_id || initialValues.parent || "";
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(departmentSchema),
+    defaultValues: {
+      name: initialValues.name || "",
+      head: defaultHead,
+      parent: defaultParent,
+      status: initialValues.status || "active",
+    },
+  });
+
+  useEffect(() => {
+    async function loadOptions() {
+      try {
+        const [empData, depData] = await Promise.all([
+          getEmployees(),
+          getDepartments(),
+        ]);
+        setEmployees(empData);
+        setDepartments(depData);
+      } catch (err) {
+        console.error("Failed to load select options", err);
+      }
+    }
+    loadOptions();
+  }, []);
 
   return (
-    <form
-  onSubmit={handleSubmit(onSubmit)}
-  className="space-y-4"
->
-  <div>
-    <label className="mb-2 block text-sm font-medium">
-      Department Name
-    </label>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div>
+        <label className="mb-1.5 block text-xs font-sans font-medium text-ink/60 uppercase tracking-wide">
+          Department Name
+        </label>
+        <input
+          placeholder="e.g. Engineering"
+          {...register("name")}
+          className="w-full px-3 py-2 text-sm font-sans border border-line rounded-md bg-white text-ink placeholder:text-ink/30 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+        />
+        {errors.name && (
+          <p className="mt-1 text-xs text-status-alert">{errors.name.message}</p>
+        )}
+      </div>
 
-    <Input
-      placeholder="Engineering"
-      {...register("name")}
-    />
-
-    {errors.name && (
-      <p className="mt-1 text-sm text-red-500">
-        {errors.name.message}
-      </p>
-    )}
-  </div>
-
-  <div>
-  <label className="mb-2 block text-sm font-medium">
-    Department Head
-  </label>
-
-  <Controller
-    name="head"
-    control={control}
-    render={({ field }) => (
-      <Select
-        value={field.value}
-        onValueChange={field.onChange}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select Department Head" />
-        </SelectTrigger>
-
-        <SelectContent>
-          {mockEmployees.map((employee) => (
-            <SelectItem
-              key={employee.id}
-              value={employee.id}
+      <div>
+        <label className="mb-1.5 block text-xs font-sans font-medium text-ink/60 uppercase tracking-wide">
+          Department Head
+        </label>
+        <Controller
+          name="head"
+          control={control}
+          render={({ field }) => (
+            <select
+              value={field.value || ""}
+              onChange={(e) => field.onChange(e.target.value)}
+              className="w-full px-3 py-2 text-sm font-sans border border-line rounded-md bg-white text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
             >
-              {employee.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    )}
-  />
-</div>
+              <option value="">Select Department Head</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name}
+                </option>
+              ))}
+            </select>
+          )}
+        />
+      </div>
 
-<div>
-  <label className="mb-2 block text-sm font-medium">
-    Parent Department
-  </label>
-
-  <Controller
-    name="parent"
-    control={control}
-    render={({ field }) => (
-      <Select
-        value={field.value}
-        onValueChange={field.onChange}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select Parent Department" />
-        </SelectTrigger>
-
-        <SelectContent>
-          <SelectItem value="">None</SelectItem>
-
-          {mockDepartments.map((department) => (
-            <SelectItem
-              key={department.id}
-              value={department.id}
+      <div>
+        <label className="mb-1.5 block text-xs font-sans font-medium text-ink/60 uppercase tracking-wide">
+          Parent Department
+        </label>
+        <Controller
+          name="parent"
+          control={control}
+          render={({ field }) => (
+            <select
+              value={field.value || ""}
+              onChange={(e) => field.onChange(e.target.value)}
+              className="w-full px-3 py-2 text-sm font-sans border border-line rounded-md bg-white text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
             >
-              {department.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    )}
-  />
-</div>
+              <option value="">None</option>
+              {departments.map((dep) => (
+                <option key={dep.id} value={dep.id}>
+                  {dep.name}
+                </option>
+              ))}
+            </select>
+          )}
+        />
+      </div>
 
-  <div>
-    <label className="mb-2 block text-sm font-medium">
-      Status
-    </label>
+      <div>
+        <label className="mb-1.5 block text-xs font-sans font-medium text-ink/60 uppercase tracking-wide">
+          Status
+        </label>
+        <Controller
+          name="status"
+          control={control}
+          render={({ field }) => (
+            <select
+              value={field.value || "active"}
+              onChange={(e) => field.onChange(e.target.value)}
+              className="w-full px-3 py-2 text-sm font-sans border border-line rounded-md bg-white text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          )}
+        />
+      </div>
 
-    <Controller
-      name="status"
-      control={control}
-      render={({ field }) => (
-        <Select
-          value={field.value}
-          onValueChange={field.onChange}
+      <div className="flex justify-end pt-1">
+        <button
+          type="submit"
+          className="px-4 py-2 text-[13px] font-sans bg-ink text-paper rounded-md transition-colors duration-150 hover:bg-ink/90"
         >
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-
-          <SelectContent>
-            <SelectItem value="active">
-              Active
-            </SelectItem>
-
-            <SelectItem value="inactive">
-              Inactive
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      )}
-    />
-  </div>
-
-  <div className="flex justify-end">
-    <Button type="submit">
-      Save
-    </Button>
-  </div>
-</form>
+          Save Department
+        </button>
+      </div>
+    </form>
   );
 }
 

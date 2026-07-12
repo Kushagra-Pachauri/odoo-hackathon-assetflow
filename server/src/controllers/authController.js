@@ -238,7 +238,7 @@ export const me = async (req, res) => {
       });
     }
 
-    return res.json(result.rows[0]);
+    return res.json({ user: result.rows[0] });
 
   } catch (err) {
 

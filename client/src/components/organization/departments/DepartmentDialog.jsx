@@ -18,10 +18,18 @@ function DepartmentDialog({
 }) {
   async function handleSubmit(values) {
     try {
+      // Map schema keys to database API fields
+      const payload = {
+        name: values.name,
+        status: values.status,
+        head_employee_id: values.head || null,
+        parent_department_id: values.parent || null,
+      };
+
       if (department) {
-        await updateDepartment(department.id, values);
+        await updateDepartment(department.id, payload);
       } else {
-        await createDepartment(values);
+        await createDepartment(payload);
       }
 
       if (onSuccess) {
@@ -37,7 +45,6 @@ function DepartmentDialog({
       onOpenChange(false);
     } catch (error) {
       console.error(error);
-
       toast.error(
         department
           ? "Failed to update department."
@@ -60,8 +67,8 @@ function DepartmentDialog({
             initialValues={
               department ?? {
                 name: "",
-                head: "",
-                parent: "",
+                head_employee_id: "",
+                parent_department_id: "",
                 status: "active",
               }
             }

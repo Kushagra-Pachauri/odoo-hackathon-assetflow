@@ -1,129 +1,73 @@
 import { toast } from "sonner";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-
 import { promoteEmployee } from "@/services/employeeService";
+import StatusDot from "@/components/shared/StatusDot";
+import Tag from "@/components/shared/Tag";
 
-function EmployeesTab({
-  employees,
-  loading,
-  refreshEmployees,
-}) {
+function EmployeesTab({ employees, loading, refreshEmployees }) {
   async function handlePromote(id) {
     try {
       await promoteEmployee(id);
-
       toast.success("Employee promoted successfully.");
-
       if (refreshEmployees) {
         await refreshEmployees();
       }
     } catch (error) {
       console.error(error);
-
       toast.error("Failed to promote employee.");
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Employee Directory</CardTitle>
-      </CardHeader>
-
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center text-muted-foreground"
-                >
-                  Loading employees...
-                </TableCell>
-              </TableRow>
-            ) : employees.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center text-muted-foreground"
-                >
-                  No employees found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              employees.map((employee) => (
-                <TableRow key={employee.id}>
-                  <TableCell>{employee.name}</TableCell>
-
-                  <TableCell>{employee.email}</TableCell>
-
-                  <TableCell>
-                    {employee.department?.name || "—"}
-                  </TableCell>
-
-                  <TableCell>
-                    <Badge variant="outline">
-                      {employee.role}
-                    </Badge>
-                  </TableCell>
-
-                  <TableCell>
-                    <Badge
-                      variant={
-                        employee.status === "active"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {employee.status}
-                    </Badge>
-                  </TableCell>
-
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      onClick={() => handlePromote(employee.id)}
-                    >
-                      Promote
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <div className="bg-white border border-line rounded-md overflow-hidden">
+      <div className="px-5 py-3 border-b border-line">
+        <h2 className="font-display font-medium text-sm text-ink">Employee Directory</h2>
+      </div>
+      <table className="w-full text-sm font-sans">
+        <thead>
+          <tr className="border-b border-line">
+            <th className="text-left px-4 py-3 font-medium text-ink/60 text-xs uppercase tracking-wide">Name</th>
+            <th className="text-left px-4 py-3 font-medium text-ink/60 text-xs uppercase tracking-wide">Email</th>
+            <th className="text-left px-4 py-3 font-medium text-ink/60 text-xs uppercase tracking-wide">Department</th>
+            <th className="text-left px-4 py-3 font-medium text-ink/60 text-xs uppercase tracking-wide">Role</th>
+            <th className="text-left px-4 py-3 font-medium text-ink/60 text-xs uppercase tracking-wide">Status</th>
+            <th className="text-right px-4 py-3 font-medium text-ink/60 text-xs uppercase tracking-wide">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
+            <tr>
+              <td colSpan={6} className="text-center text-ink/40 py-8">Loading employees…</td>
+            </tr>
+          ) : employees.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="text-center text-ink/40 py-8">No employees found.</td>
+            </tr>
+          ) : (
+            employees.map((employee) => (
+              <tr key={employee.id} className="border-b border-line last:border-b-0 transition-colors duration-150 hover:bg-accent/[0.04]">
+                <td className="px-4 py-3 text-ink font-medium">{employee.name}</td>
+                <td className="px-4 py-3 text-ink/60">{employee.email}</td>
+                <td className="px-4 py-3 text-ink/60">{employee.department?.name || "—"}</td>
+                <td className="px-4 py-3">
+                  <Tag>{employee.role.toUpperCase()}</Tag>
+                </td>
+                <td className="px-4 py-3">
+                  <StatusDot status={employee.status} />
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    onClick={() => handlePromote(employee.id)}
+                    className="px-3 py-1.5 text-[12px] font-sans border border-line rounded-md text-ink bg-transparent transition-colors duration-150 hover:bg-accent/5"
+                  >
+                    Promote
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

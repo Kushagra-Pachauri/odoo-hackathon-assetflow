@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "type":"module",
+  "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "migrate": "psql $DATABASE_URL -f schema.sql"
+    "migrate": "psql $DATABASE_URL -f schema.sql",
+    "seed": "psql $DATABASE_URL -f seed.sql"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +25,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "dotenv-cli": "^11.0.0",
     "nodemon": "^3.1.14"
   }
 }
