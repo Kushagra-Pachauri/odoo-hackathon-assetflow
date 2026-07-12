@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
 
   const logout = () => {};
 
-  const getCurrentUser = () => {};
+  const fetchCurrentUser = () => {};
 
   return (
     <AuthContext.Provider
@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
         user,
         login,
         logout,
-        getCurrentUser,
+        fetchCurrentUser,
       }}
     >
       {children}
