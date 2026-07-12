@@ -10,7 +10,7 @@ export function useSocket() {
     // Only connect if user exists and has an ID
     if (!user?.id) return;
 
-    const newSocket = io("http://localhost:4000", {
+    const newSocket = io("http://127.0.0.1:4000", {
       withCredentials: true,
       autoConnect: true,
     });

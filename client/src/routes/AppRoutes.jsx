@@ -14,11 +14,19 @@ import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 import NotFound from "../pages/NotFound";
 
+import ProtectedRoute from "../components/ProtectedRoute";
+
 function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<AppLayout />}>
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/" element={<Dashboard />} />
           <Route path="/assets" element={<Assets />} />
           <Route path="/allocation" element={<Allocations />} />
@@ -27,13 +35,13 @@ function AppRoutes() {
           <Route path="/reports" element={<Reports />} />
 
           <Route
-              path="/organization-setup"
-              element={
-                <AdminRoute>
-                  <OrganizationSetup />
-                </AdminRoute>
-              }
-            />
+            path="/organization-setup"
+            element={
+              <AdminRoute>
+                <OrganizationSetup />
+              </AdminRoute>
+            }
+          />
         </Route>
 
         <Route path="/login" element={<Login />} />

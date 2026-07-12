@@ -68,7 +68,7 @@ function Allocations() {
   useEffect(() => {
     fetchData();
 
-    const socket = io("http://localhost:4000", { withCredentials: true });
+    const socket = io("http://127.0.0.1:4000", { withCredentials: true });
 
     socket.on("connect", () => {
       if (user?.id) socket.emit("join", user.id);

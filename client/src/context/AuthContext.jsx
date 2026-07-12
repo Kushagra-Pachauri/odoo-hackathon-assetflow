@@ -4,12 +4,8 @@ import api from "@/services/api";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState({
-  id: 1,
-  name: "Admin",
-  role: "admin",
-});
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   async function fetchCurrentUser() {
     try {
@@ -32,9 +28,9 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
-  //useEffect(() => {
-    //fetchCurrentUser();
-  //}, []);
+  useEffect(() => {
+    fetchCurrentUser();
+  }, []);
 
   return (
     <AuthContext.Provider
